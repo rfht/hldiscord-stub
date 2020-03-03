@@ -1,11 +1,9 @@
 #define HL_NAME(n) discord_##n
 #include <hl.h>
-#include <tchar.h>
-#include <discord/discord_rpc.h>
 #include <time.h>
 
 
-void Ready(const DiscordUser* request) {
+void Ready(const int* request) {
 }
 
 void Disconnected(int _errorCode, const char* _message) {
@@ -14,54 +12,37 @@ void Disconnected(int _errorCode, const char* _message) {
 void Errored(int _errorCode, const char* _message) {
 }
 
-static DiscordRichPresence presence;
+static int presence;
 static bool init = false;
 HL_PRIM bool HL_NAME(init)(vbyte* _appID, vbyte* _steamID){
-    static DiscordEventHandlers handlers;
-    if( init ) return true;
-
-    memset(&handlers, 0, sizeof(handlers));
-    handlers.ready = &Ready;
-    handlers.disconnected = &Disconnected;
-    handlers.errored = &Errored;
-    init = true;
-    Discord_Initialize((const char*)_appID, &handlers, 1, (const char*)_steamID);
-    memset(&presence, 0, sizeof(presence));
-    time_t now;
-    presence.startTimestamp = time(&now);
     return true;
 }
 
 HL_PRIM void HL_NAME(update_presence)() {
-    Discord_UpdatePresence(&presence);
 }
 
 HL_PRIM void HL_NAME(release)() {
-    Discord_Shutdown();
 }
+
+// for Darksburg
+HL_PRIM void HL_NAME(send_request_reply)() { }
+HL_PRIM void HL_NAME(update_activity)() { }
+HL_PRIM bool HL_NAME(register_steam)() { return false; }
+HL_PRIM void HL_NAME(loop)() { }
 
 #define IMPLEMENT_PRESENCE_PROPERTY_UPDATE(paramName, type)     \
 void update_##paramName(type _value, bool _autoSend) {          \
-    if( !init ) return;                                         \
-    presence.##paramName = _value;                              \
-    if( _autoSend ){                                            \
-        Discord_UpdatePresence(&presence);                      \
-    }                                                           \
 }                                                               \
 
 #define IMPLEMENT_PRESENCE_STRING_PROPERTY_UPDATE(paramName)                \
 IMPLEMENT_PRESENCE_PROPERTY_UPDATE(paramName, const char*)                  \
 HL_PRIM void HL_NAME(update_##paramName)(vbyte* _value, bool _autoSend){    \
-    static char paramName[128];                                             \
-    strcpy_s(paramName, 128, (const char*) _value);                         \
-    update_##paramName(paramName, _autoSend);                               \
 }                                                                           \
 DEFINE_PRIM(_VOID, update_##paramName, _BYTES _BOOL)
 
 #define IMPLEMENT_PRESENCE_INTEGER_PROPERTY_UPDATE(paramName)               \
 IMPLEMENT_PRESENCE_PROPERTY_UPDATE(paramName, int)                          \
 HL_PRIM void HL_NAME(update_##paramName)(int _value, bool _autoSend){       \
-    update_##paramName(_value, _autoSend);                                  \
 }                                                                           \
 DEFINE_PRIM(_VOID, update_##paramName, _I32 _BOOL)
 
@@ -83,3 +64,7 @@ IMPLEMENT_PRESENCE_INTEGER_PROPERTY_UPDATE(endTimestamp)
 
 DEFINE_PRIM(_VOID, init, _BYTES _BYTES)
 DEFINE_PRIM(_VOID, release, _NO_ARG)
+DEFINE_PRIM(_VOID, send_request_reply, _NO_ARG)		// for Darksburg
+DEFINE_PRIM(_VOID, update_activity, _NO_ARG)		// for Darksburg
+DEFINE_PRIM(_BOOL, register_steam, _NO_ARG)		// for Darksburg
+DEFINE_PRIM(_VOID, loop, _NO_ARG)		// for Darksburg
